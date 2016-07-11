@@ -69,7 +69,10 @@ def cmd_deploy(args, log):
     while state in ['Queued', 'Pending', 'InProgress']:
         time.sleep(5)
         state, state_detail, errors = md.check_deploy_status(id)
-        log.inf("  State: %s Info: %s" % (state, state_detail))
+        if state in ['Queued', 'Pending']:
+            log.inf("  State: %s" % state)
+        else:
+            log.inf("  State: %s Info: %s" % (state, state_detail))
 
     if state == 'Failed':
         log.err('Deployment failed\n%s' % errors)
