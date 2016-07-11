@@ -45,7 +45,7 @@ sf_kwargs = {
 }
 
 if args.version:
-    sf_kwargs['version'] = args.version
+    sf_kwargs['api_version'] = args.version
 
 log = SfdcLogger()
 
