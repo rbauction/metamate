@@ -11,19 +11,19 @@ from sfdclib import SfdcLogger
 parser = argparse.ArgumentParser(description='Manipulates Salesforce metadata')
 parser.add_argument('command', type=str,
                     help='command')
-parser.add_argument('--username', type=str,
+parser.add_argument('-u', '--username', type=str,
                     help='Salesforce user name')
-parser.add_argument('--password', type=str,
+parser.add_argument('-p', '--password', type=str,
                     help='password')
-parser.add_argument('--token', type=str,
+parser.add_argument('-t', '--token', type=str,
                     help='security token')
-parser.add_argument('--deploy-zip', type=str,
+parser.add_argument('-d', '--deploy-zip', type=str,
                     help='path to deploy.zip')
-parser.add_argument('--source-dir', type=str,
+parser.add_argument('-s', '--source-dir', type=str,
                     help='path to directory containing metadata')
 parser.add_argument('--sandbox', dest='sandbox', action='store_true',
                     help='use this switch when working with sandbox')
-parser.add_argument('--version', type=str,
+parser.add_argument('-v', '--version', type=str,
                     help='API version (i.e. 32.0, 33.0, etc)')
 args = parser.parse_args()
 
