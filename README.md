@@ -32,10 +32,10 @@ Installation
 ---
 #### Linux, UNIX and Mac OS
 Install Python v3.4, install [sfdclib Python library] (https://github.com/rbauction/sfdclib) and clone this repository.
-``
+```
 pip install sfdclib
 git clone https://github.com/rbauction/metamate.git
-``
+```
 
 #### Windows
 Download executable file from [releases] (https://github.com/rbauction/metamate/releases) tab or follow the instruction above.
