@@ -40,6 +40,14 @@ git clone https://github.com/rbauction/metamate.git
 #### Windows
 Download executable file from [releases] (https://github.com/rbauction/metamate/releases) tab or follow the instruction above.
 
+How to create Windows executable
+---
+Install PyInstaller and then run the following command:
+```
+pyinstaller --onefile metamate.py
+```
+Resulting exe file can be found in dist directory.
+
 Usage
 ---
 ```

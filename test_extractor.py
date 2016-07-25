@@ -5,13 +5,13 @@ from zipfile import ZipFile
 
 XML_NAMESPACES = {'mt': 'http://soap.sforce.com/2006/04/metadata'}
 
-def grep_file(path, regobj):
+def grep_file(file, regobj):
     try:
-        with open(path, 'r') as f:
+        with open(file, 'r') as f:
             if regobj.search(f.read()):
                 return True
     except:
-        print("Could not process file %s" % path)
+        print("Could not process file %s" % file)
     return False
 
 def extract_package_xml(zipfile):
@@ -60,7 +60,11 @@ def extract_class_names(objects, sourcedir):
     class_names = []
     regobj = re.compile(r'(private|public)\s+.*class\s+([a-zA-Z0-9_]+)\s*')
     for o in objects:
-        with open(path.join(sourcedir, "classes", "%s.cls" % o), 'r') as f:
-            for m in regobj.finditer(f.read()):
-                class_names.append(m.group(2))
+        file = path.join(sourcedir, "classes", "%s.cls" % o)
+        try:
+            with open(file, 'r') as f:
+                for m in regobj.finditer(f.read()):
+                    class_names.append(m.group(2))
+        except Exception as err:
+            print("Could not process file {0}. Error: {1}".format(file, err))
     return class_names
