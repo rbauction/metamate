@@ -75,7 +75,14 @@ def cmd_deploy(args, log):
             log.inf("  State: %s Info: %s" % (state, state_detail))
 
     if state == 'Failed':
-        log.err('Deployment failed\n%s' % errors)
+        log.err('Deployment failed')
+        for err in errors:
+            log.err("=====\nClass: %s\nMethod: %s\nError: %s\n" % (
+                err['class'],
+                err['method'],
+                err['message']))
+        log.err("===== %s test(s) failed" % len(errors))
+
         return False
 
     log.inf('Deployment succeeded')
