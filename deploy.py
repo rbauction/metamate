@@ -1,3 +1,4 @@
+''' Deploy command '''
 import time
 from dependency_finder import find_test_class_dependencies
 from test_extractor import \
@@ -6,12 +7,12 @@ from test_extractor import \
     extract_class_names, \
     find_test_objects
 from sfdclib import \
-    SfdcLogger, \
     SfdcSession, \
     SfdcMetadataApi
 
 
 def cmd_deploy(args, log):
+    ''' Deploy command '''
     # Salesforce connection settings
     sf_kwargs = {
         'username': args.username,
@@ -30,8 +31,8 @@ def cmd_deploy(args, log):
     test_objects = extract_test_objects(class_objects, args.source_dir)
     nontest_objects = class_objects
     class_objects = None
-    for x in test_objects:
-        nontest_objects.remove(x)
+    for test_object in test_objects:
+        nontest_objects.remove(test_object)
 
     log.inf("Extracting names of test classes")
     classes_to_test = extract_class_names(test_objects, args.source_dir)
@@ -43,46 +44,56 @@ def cmd_deploy(args, log):
     all_test_objects = find_test_objects(args.source_dir)
 
     log.inf("Connecting to Salesforce")
-    ss = SfdcSession(**sf_kwargs)
-    ss.login()
+    session = SfdcSession(**sf_kwargs)
+    session.login()
 
-    class_dependencies = find_test_class_dependencies(log, ss, all_test_objects)
-    for c in changed_nontest_classes:
-        if c in class_dependencies:
-            for d in class_dependencies[c]:
-                classes_to_test.append(d)
+    class_dependencies = find_test_class_dependencies(log, session, all_test_objects)
+    for class_ in changed_nontest_classes:
+        if class_ in class_dependencies:
+            for dependant in class_dependencies[class_]:
+                classes_to_test.append(dependant)
 
     log.inf("Classes to be tested")
-    for c in classes_to_test:
-        log.inf("  %s" % c)
+    for class_ in classes_to_test:
+        log.inf("  %s" % class_)
 
-    md = SfdcMetadataApi(ss)
+    mapi = SfdcMetadataApi(session)
 
     log.inf("Deploying ZIP file")
-    id, state = md.deploy(
+    depl_id, state = mapi.deploy(
         args.deploy_zip,
         checkonly=True,
         testlevel="RunSpecifiedTests",
         tests=classes_to_test)
-    log.inf("  Deployment id: %s" % id)
+    log.inf("  Deployment id: %s" % depl_id)
 
     while state in ['Queued', 'Pending', 'InProgress']:
         time.sleep(5)
-        state, state_detail, errors = md.check_deploy_status(id)
+        state, state_detail, deployment_errors, unit_test_errors = mapi.check_deploy_status(depl_id)
         if state in ['Queued', 'Pending']:
             log.inf("  State: %s" % state)
         else:
             log.inf("  State: %s Info: %s" % (state, state_detail))
 
     if state == 'Failed':
-        log.err('Deployment failed')
-        for err in errors:
+        # Print out unit test errors
+        for err in unit_test_errors:
             log.err("=====\nClass: %s\nMethod: %s\nError: %s\n" % (
                 err['class'],
                 err['method'],
                 err['message']))
-        log.err("===== %s test(s) failed" % len(errors))
+        log.err("===== %s test(s) failed" % len(unit_test_errors))
 
+        # Print out deployment errors
+        for err in deployment_errors:
+            log.err("=====\nType: %s\nFile: %s\nStatus: %s\nMessage: %s\n" % (
+                err['type'],
+                err['file'],
+                err['status'],
+                err['message']))
+        log.err("===== %s Component(s) failed" % len(unit_test_errors))
+
+        log.err('Deployment failed')
         return False
 
     log.inf('Deployment succeeded')

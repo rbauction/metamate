@@ -5,13 +5,13 @@ from zipfile import ZipFile
 
 XML_NAMESPACES = {'mt': 'http://soap.sforce.com/2006/04/metadata'}
 
-def grep_file(file, regobj):
+def grep_file(filename, regobj):
     try:
-        with open(file, 'r') as f:
-            if regobj.search(f.read()):
+        with open(filename, mode='r', encoding='utf-8') as file:
+            if regobj.search(file.read()):
                 return True
-    except:
-        print("Could not process file %s" % file)
+    except Exception as ex:
+        print("Could not process file %s: %s" % (filename, ex))
     return False
 
 def extract_package_xml(zipfile):
@@ -32,7 +32,7 @@ def extract_class_objects(zipfile, sourcedir):
 
 def extract_test_objects(classes, sourcedir):
     objects = []
-    regobj = re.compile(r'@isTest')
+    regobj = re.compile(r'@isTest', re.UNICODE)
     for c in classes:
         filepath = path.join(sourcedir, "classes", "%s.cls" % c)
         if not path.isfile(filepath):
@@ -44,8 +44,8 @@ def extract_test_objects(classes, sourcedir):
 
 def find_test_objects(sourcedir):
     objects = []
-    regobj_test = re.compile(r'@isTest')
-    regobj_active = re.compile(r'Active')
+    regobj_test = re.compile(r'@isTest', re.UNICODE)
+    regobj_active = re.compile(r'Active', re.UNICODE)
     classes_path = path.join(sourcedir, "classes")
     for entry in listdir(classes_path):
         if '-meta.xml' in entry:
@@ -58,13 +58,13 @@ def find_test_objects(sourcedir):
 
 def extract_class_names(objects, sourcedir):
     class_names = []
-    regobj = re.compile(r'(private|public)\s+.*class\s+([a-zA-Z0-9_]+)\s*')
-    for o in objects:
-        file = path.join(sourcedir, "classes", "%s.cls" % o)
+    regobj = re.compile(r'(private|public)\s+.*class\s+([a-zA-Z0-9_]+)\s*', re.UNICODE)
+    for obj in objects:
+        filename = path.join(sourcedir, "classes", "%s.cls" % obj)
         try:
-            with open(file, 'r') as f:
-                for m in regobj.finditer(f.read()):
-                    class_names.append(m.group(2))
+            with open(filename, mode='r', encoding='utf-8') as file:
+                for match in regobj.finditer(file.read()):
+                    class_names.append(match.group(2))
         except Exception as err:
-            print("Could not process file {0}. Error: {1}".format(file, err))
+            print("Could not process file {0}. Error: {1}".format(filename, err))
     return class_names

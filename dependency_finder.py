@@ -1,93 +1,98 @@
-import json
+''' Test class dependency finder '''
 import time
 
-from sfdclib import \
-    SfdcLogger, \
-    SfdcSession, \
-    SfdcToolingApi
+from sfdclib import SfdcToolingApi
 
 
-def find_test_class_dependencies(log, session, test_classes):
-    tooling = SfdcToolingApi(session)
-    log.inf("Retrieving list of Apex classes from Salesforce")
-    r = tooling.anon_query("SELECT Id,Name FROM ApexClass")
-    j = json.loads(r)
+def retrieve_apex_classes(tooling):
+    ''' Retrieves list of Apex classes '''
+    res = tooling.anon_query("SELECT Id,Name FROM ApexClass")
     apex_classes = {}
-    for c in j['records']:
-        apex_classes[c['Name']] = c['Id']
+    for apex_class in res['records']:
+        apex_classes[apex_class['Name']] = apex_class['Id']
+    return apex_classes
 
-    log.inf("Looking for tests that exist both locally and in Salesforce")
-    matching_tests = {}
-    for c in test_classes:
-        if c in apex_classes:
-            matching_tests[apex_classes[c]] = c
 
-    container = {'Name': 'AndreyMetadataContainerTest'}
-    log.inf("Checking if metadata container still exists in Salesforce")
-    r = tooling.anon_query("SELECT Id,Name FROM MetadataContainer WHERE Name='%s'" % container['Name'])
-    j = json.loads(r)
-    if j['size'] == 1:
-        log.inf("===> Deleting stale metadata container")
-        r = tooling.delete('/sobjects/MetadataContainer/%s' % j['records'][0]['Id'])
+def create_metadata_container(tooling):
+    ''' (Re)creates metadata container '''
+    container = {'Name': 'MetamateMetadataContainer'}
 
-    log.inf("===> Creating metadata container")
-    r = tooling.post('/sobjects/MetadataContainer/', {'Name': container['Name']})
-    j = json.loads(r)
-    if j['success']:
-        container['Id'] = j['id']
+    res = tooling.anon_query(
+        "SELECT Id,Name FROM MetadataContainer WHERE Name='%s'" % container['Name'])
+    if res['size'] == 1:
+        tooling.delete('/sobjects/MetadataContainer/%s' % res['records'][0]['Id'])
+
+    res = tooling.post('/sobjects/MetadataContainer/', {'Name': container['Name']})
+
+    if res['success']:
+        container['Id'] = res['id']
     else:
         raise Exception('Could not create metadata container')
 
+    return container
+
+
+def find_test_class_dependencies(log, session, test_classes):
+    ''' Finds test class dependencies '''
+    tooling = SfdcToolingApi(session)
+    log.inf("Retrieving list of Apex classes from Salesforce")
+    apex_classes = retrieve_apex_classes(tooling)
+
+    log.inf("Looking for tests that exist both locally and in Salesforce")
+    matching_tests = {}
+    for apex_class in test_classes:
+        if apex_class in apex_classes:
+            matching_tests[apex_classes[apex_class]] = apex_class
+
+    log.inf("Creating metadata container")
+    container = create_metadata_container(tooling)
+
     members = {}
     log.inf("===> Adding %s ApexClasses to metadata container" % len(matching_tests))
-    for id, name in matching_tests.items():
-        log.inf("  Id: %s Name: %s" % (id, name))
+    for class_id, name in matching_tests.items():
+        log.inf("  Id: %s Name: %s" % (class_id, name))
         log.dbg("Retrieving object from Salesforce")
-        r = tooling.get('/sobjects/ApexClass/%s/' % id)
-        apexclass = json.loads(r)
-
+        apex_class = tooling.get('/sobjects/ApexClass/%s/' % class_id)
         log.dbg("Adding ApexClassMember to the metadata container")
-        r = tooling.post('/sobjects/ApexClassMember/', {
+        res = tooling.post('/sobjects/ApexClassMember/', {
             'MetadataContainerId': container['Id'],
-            'ContentEntityId': id,
-            'Body': apexclass['Body']})
-        j = json.loads(r)
-        members[j['id']] = name
+            'ContentEntityId': class_id,
+            'Body': apex_class['Body']})
+        members[res['id']] = name
 
     log.inf("===> Compiling metadata")
-    r = tooling.post('/sobjects/ContainerAsyncRequest/', {
+    res = tooling.post('/sobjects/ContainerAsyncRequest/', {
         'MetadataContainerId': container['Id'],
         'IsCheckOnly': 'true'})
-    j = json.loads(r)
-    if j['success']:
-        req_id = j['id']
+
+    if res['success']:
+        req_id = res['id']
     while True:
-        r = tooling.anon_query("SELECT State,ErrorMsg FROM ContainerAsyncRequest WHERE Id='%s'" % req_id)
-        j = json.loads(r)
-        log.inf(j['records'][0]['State'])
-        if j['records'][0]['State'] not in ['Queued', 'Pending', 'InProgress']:
+        res = tooling.anon_query(
+            "SELECT State,ErrorMsg FROM ContainerAsyncRequest WHERE Id='%s'" % req_id)
+        log.inf(res['records'][0]['State'])
+        if res['records'][0]['State'] not in ['Queued', 'Pending', 'InProgress']:
             break
         time.sleep(5)
 
     log.inf("===> Retrieving symbol tables")
     # Format {'class_name': ['test_class_name1', 'test_class_name2'], ...}
     dependencies = {}
-    for id, name in members.items():
-        log.inf("  Id: %s Name: %s" % (id, name))
-        r = tooling.get('/sobjects/ApexClassMember/%s/' % id)
-        j = json.loads(r)
-        if j['SymbolTable'] == None:
+    for class_id, name in members.items():
+        log.inf("  Id: %s Name: %s" % (class_id, name))
+        res = tooling.get('/sobjects/ApexClassMember/%s/' % class_id)
+        if res['SymbolTable'] is None:
             continue
-        for c in j['SymbolTable']['externalReferences']:
-            if c['name'] in dependencies:
-                if name in dependencies[c['name']]:
+        for apex_class in res['SymbolTable']['externalReferences']:
+            if apex_class['name'] in dependencies:
+                if name in dependencies[apex_class['name']]:
                     continue
-                classes = dependencies[c['name']]
+                classes = dependencies[apex_class['name']]
             else:
                 classes = []
             classes.append(name)
-            dependencies[c['name']] = classes
+            dependencies[apex_class['name']] = classes
 
     log.inf("===> Deleting metadata container")
-    r = tooling.delete('/sobjects/MetadataContainer/%s' % container['Id'])
+    tooling.delete('/sobjects/MetadataContainer/%s' % container['Id'])
     return dependencies
