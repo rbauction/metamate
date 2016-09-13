@@ -11,9 +11,8 @@ from sfdclib import \
     SfdcMetadataApi
 
 
-def cmd_deploy(args, log):
-    ''' Deploy command '''
-    # Salesforce connection settings
+def compose_sf_connection_settings(args):
+    ''' Composes Salesforce connection settings '''
     sf_kwargs = {
         'username': args.username,
         'password': args.password,
@@ -23,6 +22,12 @@ def cmd_deploy(args, log):
 
     if args.version:
         sf_kwargs['api_version'] = args.version
+
+    return sf_kwargs
+
+def cmd_deploy(args, log):
+    ''' Deploy command '''
+    sf_kwargs = compose_sf_connection_settings(args)
 
     log.inf("Extracting names of objects containing classes from deployment ZIP")
     class_objects = extract_class_objects(args.deploy_zip, args.source_dir)
@@ -70,7 +75,7 @@ def cmd_deploy(args, log):
     while state in ['Queued', 'Pending', 'InProgress']:
         time.sleep(5)
         state, state_detail, deployment_errors, unit_test_errors = mapi.check_deploy_status(depl_id)
-        if state in ['Queued', 'Pending']:
+        if state_detail is None:
             log.inf("  State: %s" % state)
         else:
             log.inf("  State: %s Info: %s" % (state, state_detail))
@@ -91,7 +96,7 @@ def cmd_deploy(args, log):
                 err['file'],
                 err['status'],
                 err['message']))
-        log.err("===== %s Component(s) failed" % len(unit_test_errors))
+        log.err("===== %s Component(s) failed" % len(deployment_errors))
 
         log.err('Deployment failed')
         return False
