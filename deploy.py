@@ -9,97 +9,127 @@ from test_extractor import \
 from sfdclib import \
     SfdcSession, \
     SfdcMetadataApi
+from abstract_command import AbstractCommand
 
 
-def compose_sf_connection_settings(args):
-    ''' Composes Salesforce connection settings '''
-    sf_kwargs = {
-        'username': args.username,
-        'password': args.password,
-        'token': args.token,
-        'is_sandbox': args.sandbox
-    }
-
-    if args.version:
-        sf_kwargs['api_version'] = args.version
-
-    return sf_kwargs
-
-def cmd_deploy(args, log):
+class DeployCommand(AbstractCommand):
     ''' Deploy command '''
-    sf_kwargs = compose_sf_connection_settings(args)
+    def __init__(self, args, log):
+        super().__init__(args, log)
+        self._session = None
+        self._mapi = None
+        self._deployment_id = None
+        self._deployment_state = None
+        self._deployment_errors = None
+        self._unit_tests_to_run = None
+        self._unit_test_errors = None
 
-    log.inf("Extracting names of objects containing classes from deployment ZIP")
-    class_objects = extract_class_objects(args.deploy_zip, args.source_dir)
+    def _compose_sf_connection_settings(self):
+        ''' Composes Salesforce connection settings '''
+        sf_kwargs = {
+            'username': self._args.username,
+            'password': self._args.password,
+            'token': self._args.token,
+            'is_sandbox': self._args.sandbox
+        }
 
-    log.inf("Checking which objects contain test classes")
-    test_objects = extract_test_objects(class_objects, args.source_dir)
-    nontest_objects = class_objects
-    class_objects = None
-    for test_object in test_objects:
-        nontest_objects.remove(test_object)
+        if self._args.version:
+            sf_kwargs['api_version'] = self._args.version
 
-    log.inf("Extracting names of test classes")
-    classes_to_test = extract_class_names(test_objects, args.source_dir)
+        return sf_kwargs
 
-    log.inf("Extracting names of nontest classes")
-    changed_nontest_classes = extract_class_names(nontest_objects, args.source_dir)
+    def _wait_for_deployment_to_finish(self):
+        while self._deployment_state in ['Queued', 'Pending', 'InProgress']:
+            time.sleep(5)
+            self._deployment_state, state_detail, self._deployment_errors, self._unit_test_errors =\
+                self._mapi.check_deploy_status(self._deployment_id)
+            if state_detail is None:
+                self._log.inf("  State: %s" % self._deployment_state)
+            else:
+                self._log.inf("  State: %s - %s" % (self._deployment_state, state_detail))
 
-    log.inf("Searching for all objects containing Apex classes")
-    all_test_objects = find_test_objects(args.source_dir)
-
-    log.inf("Connecting to Salesforce")
-    session = SfdcSession(**sf_kwargs)
-    session.login()
-
-    class_dependencies = find_test_class_dependencies(log, session, all_test_objects)
-    for class_ in changed_nontest_classes:
-        if class_ in class_dependencies:
-            for dependant in class_dependencies[class_]:
-                classes_to_test.append(dependant)
-
-    log.inf("Classes to be tested")
-    for class_ in classes_to_test:
-        log.inf("  %s" % class_)
-
-    mapi = SfdcMetadataApi(session)
-
-    log.inf("Deploying ZIP file")
-    depl_id, state = mapi.deploy(
-        args.deploy_zip,
-        checkonly=True,
-        testlevel="RunSpecifiedTests",
-        tests=classes_to_test)
-    log.inf("  Deployment id: %s" % depl_id)
-
-    while state in ['Queued', 'Pending', 'InProgress']:
-        time.sleep(5)
-        state, state_detail, deployment_errors, unit_test_errors = mapi.check_deploy_status(depl_id)
-        if state_detail is None:
-            log.inf("  State: %s" % state)
-        else:
-            log.inf("  State: %s Info: %s" % (state, state_detail))
-
-    if state == 'Failed':
-        # Print out unit test errors
-        for err in unit_test_errors:
-            log.err("=====\nClass: %s\nMethod: %s\nError: %s\n" % (
+    def _log_unit_test_errors(self):
+        for err in self._unit_test_errors:
+            self._log.err("=====\nClass: %s\nMethod: %s\nError: %s\n" % (
                 err['class'],
                 err['method'],
                 err['message']))
-        log.err("===== %s test(s) failed" % len(unit_test_errors))
+        self._log.err("===== %s test(s) failed" % len(self._unit_test_errors))
 
-        # Print out deployment errors
-        for err in deployment_errors:
-            log.err("=====\nType: %s\nFile: %s\nStatus: %s\nMessage: %s\n" % (
+    def _log_deployment_errors(self):
+        for err in self._deployment_errors:
+            self._log.err("=====\nType: %s\nFile: %s\nStatus: %s\nMessage: %s\n" % (
                 err['type'],
                 err['file'],
                 err['status'],
                 err['message']))
-        log.err("===== %s Component(s) failed" % len(deployment_errors))
+        self._log.err("===== %s Component(s) failed" % len(self._deployment_errors))
 
-        log.err('Deployment failed')
-        return False
+    def _connect_to_salesforce(self):
+        sf_kwargs = self._compose_sf_connection_settings()
+        self._log.inf("Connecting to Salesforce")
+        self._session = SfdcSession(**sf_kwargs)
+        self._session.login()
 
-    log.inf('Deployment succeeded')
-    return True
+    def _find_unit_tests_to_run(self):
+        self._log.inf("Extracting names of objects containing classes from deployment ZIP")
+        class_objects = extract_class_objects(self._args.deploy_zip, self._args.source_dir)
+
+        self._log.inf("Checking which objects contain test classes")
+        test_objects = extract_test_objects(class_objects, self._args.source_dir)
+        nontest_objects = class_objects
+        class_objects = None
+        for test_object in test_objects:
+            nontest_objects.remove(test_object)
+
+        self._log.inf("Extracting names of test classes")
+        self._unit_tests_to_run = extract_class_names(test_objects, self._args.source_dir)
+
+        self._log.inf("Extracting names of nontest classes")
+        changed_nontest_classes = extract_class_names(nontest_objects, self._args.source_dir)
+
+        self._log.inf("Searching for all objects containing Apex classes")
+        all_test_objects = find_test_objects(self._args.source_dir)
+
+        self._connect_to_salesforce()
+
+        class_dependencies = find_test_class_dependencies(
+            self._log, self._session, all_test_objects)
+        for class_ in changed_nontest_classes:
+            if class_ in class_dependencies:
+                for dependant in class_dependencies[class_]:
+                    self._unit_tests_to_run.append(dependant)
+
+        self._log.inf("Unit tests to be executed")
+        for class_ in self._unit_tests_to_run:
+            self._log.inf("  %s" % class_)
+
+    def run(self):
+        ''' Gets called by Metamate '''
+        if self._args.test_level == 'RunSpecifiedTests':
+            self._find_unit_tests_to_run()
+
+        self._mapi = SfdcMetadataApi(self._session)
+
+        self._log.inf("Deploying ZIP file")
+        deploy_kwargs = {
+            'zipfile': self._args.deploy_zip,
+            'checkonly': True,
+            'testlevel': self._args.test_level
+        }
+        if self._args.test_level == 'RunSpecifiedTests':
+            deploy_kwargs['tests'] = self._unit_tests_to_run
+
+        self._deployment_id, self._deployment_state = self._mapi.deploy(**deploy_kwargs)
+        self._log.inf("  Deployment id: %s" % self._deployment_id)
+
+        self._wait_for_deployment_to_finish()
+
+        if self._deployment_state == 'Failed':
+            self._log_unit_test_errors()
+            self._log_deployment_errors()
+            self._log.err('Deployment failed')
+            return False
+
+        self._log.inf('Deployment succeeded')
+        return True

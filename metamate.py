@@ -4,7 +4,7 @@
 import argparse
 import sys
 
-from deploy import cmd_deploy
+from deploy import DeployCommand
 from sfdclib import SfdcLogger
 
 
@@ -22,6 +22,10 @@ def parse_command_line_args():
                         help='security token')
     parser.add_argument('-d', '--deploy-zip', type=str,
                         help='path to deploy.zip')
+    parser.add_argument('-l', '--test-level', type=str, default='NoTestRun',
+                        help='Test level: NoTestRun, RunSpecifiedTests, RunLocalTests')
+    parser.add_argument('-r', '--download-apex-logs', action='store_true',
+                        help='Whether to download Apex logs of unit test execution')
     parser.add_argument('-s', '--source-dir', type=str,
                         help='path to directory containing metadata')
     parser.add_argument('--sandbox', dest='sandbox', action='store_true',
@@ -37,7 +41,8 @@ def main():
 
     # Execute method corresponding to the command specified
     if args.command.lower() == 'deploy':
-        ret = cmd_deploy(args, log)
+        cmd = DeployCommand(args, log)
+        ret = cmd.run()
     else:
         log.err("Unknown command [%s]" % args.command)
         sys.exit(1)
