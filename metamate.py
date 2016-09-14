@@ -21,11 +21,11 @@ def parse_command_line_args():
     parser.add_argument('-t', '--token', type=str,
                         help='security token')
     parser.add_argument('-d', '--deploy-zip', type=str,
-                        help='path to deploy.zip')
-    parser.add_argument('-l', '--test-level', type=str, default='NoTestRun',
-                        help='Test level: NoTestRun, RunSpecifiedTests, RunLocalTests')
-    parser.add_argument('-r', '--download-apex-logs', action='store_true',
-                        help='Whether to download Apex logs of unit test execution')
+                        help='path to deployment package')
+    parser.add_argument('-c', '--check-only', action='store_true',
+                        help='use this switch to validate deployment package')
+    parser.add_argument('-tl', '--test-level', type=str, default='NoTestRun',
+                        help='test level: NoTestRun, RunSpecifiedTests, RunLocalTests')
     parser.add_argument('-s', '--source-dir', type=str,
                         help='path to directory containing metadata')
     parser.add_argument('--sandbox', dest='sandbox', action='store_true',

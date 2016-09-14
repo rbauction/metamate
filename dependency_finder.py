@@ -44,11 +44,15 @@ def find_test_class_dependencies(log, session, test_classes):
         if apex_class in apex_classes:
             matching_tests[apex_classes[apex_class]] = apex_class
 
+    if len(matching_tests) == 0:
+        log.inf("No matching classes found in both Salesforce and local source folder")
+        return {}
+
     log.inf("Creating metadata container")
     container = create_metadata_container(tooling)
 
     members = {}
-    log.inf("===> Adding %s ApexClasses to metadata container" % len(matching_tests))
+    log.inf("===> Adding %s Apex classes to metadata container" % len(matching_tests))
     for class_id, name in matching_tests.items():
         log.inf("  Id: %s Name: %s" % (class_id, name))
         log.dbg("Retrieving object from Salesforce")

@@ -20,9 +20,9 @@ class DeployCommand(AbstractCommand):
         self._mapi = None
         self._deployment_id = None
         self._deployment_state = None
-        self._deployment_errors = None
+        self._deployment_detail = None
         self._unit_tests_to_run = None
-        self._unit_test_errors = None
+        self._unit_test_detail = None
 
     def _compose_sf_connection_settings(self):
         ''' Composes Salesforce connection settings '''
@@ -41,7 +41,7 @@ class DeployCommand(AbstractCommand):
     def _wait_for_deployment_to_finish(self):
         while self._deployment_state in ['Queued', 'Pending', 'InProgress']:
             time.sleep(5)
-            self._deployment_state, state_detail, self._deployment_errors, self._unit_test_errors =\
+            self._deployment_state, state_detail, self._deployment_detail, self._unit_test_detail =\
                 self._mapi.check_deploy_status(self._deployment_id)
             if state_detail is None:
                 self._log.inf("  State: %s" % self._deployment_state)
@@ -49,21 +49,23 @@ class DeployCommand(AbstractCommand):
                 self._log.inf("  State: %s - %s" % (self._deployment_state, state_detail))
 
     def _log_unit_test_errors(self):
-        for err in self._unit_test_errors:
+        for err in self._unit_test_detail['errors']:
             self._log.err("=====\nClass: %s\nMethod: %s\nError: %s\n" % (
                 err['class'],
                 err['method'],
                 err['message']))
-        self._log.err("===== %s test(s) failed" % len(self._unit_test_errors))
+        self._log.err("===== %s test(s) failed out of %s" % \
+            (len(self._unit_test_detail['errors']), self._unit_test_detail['total_count']))
 
     def _log_deployment_errors(self):
-        for err in self._deployment_errors:
+        for err in self._deployment_detail['errors']:
             self._log.err("=====\nType: %s\nFile: %s\nStatus: %s\nMessage: %s\n" % (
                 err['type'],
                 err['file'],
                 err['status'],
                 err['message']))
-        self._log.err("===== %s Component(s) failed" % len(self._deployment_errors))
+        self._log.err("===== %s Component(s) failed out of %s" % \
+            (len(self._deployment_detail['errors']), self._deployment_detail['total_count']))
 
     def _connect_to_salesforce(self):
         sf_kwargs = self._compose_sf_connection_settings()
@@ -91,8 +93,6 @@ class DeployCommand(AbstractCommand):
         self._log.inf("Searching for all objects containing Apex classes")
         all_test_objects = find_test_objects(self._args.source_dir)
 
-        self._connect_to_salesforce()
-
         class_dependencies = find_test_class_dependencies(
             self._log, self._session, all_test_objects)
         for class_ in changed_nontest_classes:
@@ -106,19 +106,23 @@ class DeployCommand(AbstractCommand):
 
     def run(self):
         ''' Gets called by Metamate '''
+        self._connect_to_salesforce()
+
         if self._args.test_level == 'RunSpecifiedTests':
             self._find_unit_tests_to_run()
 
         self._mapi = SfdcMetadataApi(self._session)
 
-        self._log.inf("Deploying ZIP file")
+        self._log.inf("Deploying ZIP file. Test level: %s" % self._args.test_level)
         deploy_kwargs = {
             'zipfile': self._args.deploy_zip,
-            'checkonly': True,
-            'testlevel': self._args.test_level
+            'options': {
+                'checkonly': self._args.check_only,
+                'testlevel': self._args.test_level,
+            }
         }
         if self._args.test_level == 'RunSpecifiedTests':
-            deploy_kwargs['tests'] = self._unit_tests_to_run
+            deploy_kwargs['options']['tests'] = self._unit_tests_to_run
 
         self._deployment_id, self._deployment_state = self._mapi.deploy(**deploy_kwargs)
         self._log.inf("  Deployment id: %s" % self._deployment_id)
