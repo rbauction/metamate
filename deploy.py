@@ -46,14 +46,33 @@ class DeployCommand(AbstractCommand):
             if state_detail is None:
                 self._log.inf("  State: %s" % self._deployment_state)
             else:
-                self._log.inf("  State: %s - %s" % (self._deployment_state, state_detail))
+                if int(self._deployment_detail['deployed_count']) + \
+                   int(self._deployment_detail['failed_count']) < \
+                   int(self._deployment_detail['total_count']):
+                    progress = "(%s/%s) " % (
+                        self._deployment_detail['deployed_count'] + \
+                        self._deployment_detail['failed_count'],
+                        self._deployment_detail['total_count']
+                        )
+                else:
+                    progress = "(%s/%s) " % (
+                        self._unit_test_detail['completed_count'],
+                        self._unit_test_detail['total_count']
+                        )
+
+                self._log.inf("  State: %s - %s%s" % (
+                    self._deployment_state,
+                    progress,
+                    state_detail))
 
     def _log_unit_test_errors(self):
         for err in self._unit_test_detail['errors']:
-            self._log.err("=====\nClass: %s\nMethod: %s\nError: %s\n" % (
+            self._log.err("=====\nClass: %s\nMethod: %s\nError: %s\nStack trace: %s\n" % (
                 err['class'],
                 err['method'],
-                err['message']))
+                err['message'],
+                err['stack_trace']
+                ))
         self._log.err("===== %s test(s) failed out of %s" % \
             (len(self._unit_test_detail['errors']), self._unit_test_detail['total_count']))
 
@@ -63,7 +82,8 @@ class DeployCommand(AbstractCommand):
                 err['type'],
                 err['file'],
                 err['status'],
-                err['message']))
+                err['message']
+                ))
         self._log.err("===== %s Component(s) failed out of %s" % \
             (len(self._deployment_detail['errors']), self._deployment_detail['total_count']))
 
