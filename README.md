@@ -57,12 +57,12 @@ usage: metamate.py [-h] [--username USERNAME] [--password PASSWORD]
                    command
 ```
 
-##### Deploy from a ZIP file (Linux, UNIX and Mac OS)
+##### Run unit tests contained in a deployment package (ZIP file) (Windows, Linux, UNIX and Mac OS)
 ``
-python metamate.py deploy --sandbox --version 37.0 --username sfdcadmin@mydomain.com.sandbox --password Password --token TOKEN --deploy-zip ..\deploy.zip --source-dir ..\src
-``
-
-##### Deploy from a ZIP file (Windows)
-``
-metamate.exe deploy --sandbox --version 37.0 --username sfdcadmin@mydomain.com.sandbox --password Password --token TOKEN --deploy-zip ..\deploy.zip --source-dir ..\src
+# Deploy using default Metadata API version (Windows, Linux, UNIX and Mac OS)
+python metamate.py deploy --sandbox --username sfdcadmin@mydomain.com.sandbox --password Password --deploy-zip ../deploy.zip --source-dir ../src
+# Specify Metadata API version and token (Windows, Linux, UNIX and Mac OS)
+python metamate.py deploy --sandbox --version 37.0 --username sfdcadmin@mydomain.com.sandbox --password Password --token TOKEN --deploy-zip ../deploy.zip --source-dir ../src
+# Deploy using default Metadata API version (Windows only)
+metamate.exe deploy --sandbox --username sfdcadmin@mydomain.com.sandbox --password Password --deploy-zip ..\deploy.zip --source-dir ..\src
 ``
