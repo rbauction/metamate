@@ -1,7 +1,8 @@
-''' Deploy command '''
+""" Deploy command """
 import time
-from dependency_finder import find_test_class_dependencies
-from test_extractor import \
+from metamate.abstract_command import AbstractCommand
+from metamate.dependency_finder import find_test_class_dependencies
+from metamate.test_extractor import \
     extract_class_objects, \
     extract_test_objects, \
     extract_class_names, \
@@ -9,11 +10,10 @@ from test_extractor import \
 from sfdclib import \
     SfdcSession, \
     SfdcMetadataApi
-from abstract_command import AbstractCommand
 
 
 class DeployCommand(AbstractCommand):
-    ''' Deploy command '''
+    """ Deploy command """
     def __init__(self, args, log):
         super().__init__(args, log)
         self._session = None
@@ -25,7 +25,7 @@ class DeployCommand(AbstractCommand):
         self._unit_test_detail = None
 
     def _compose_sf_connection_settings(self):
-        ''' Composes Salesforce connection settings '''
+        """ Composes Salesforce connection settings """
         sf_kwargs = {
             'username': self._args.username,
             'password': self._args.password,
@@ -95,12 +95,11 @@ class DeployCommand(AbstractCommand):
 
     def _find_unit_tests_to_run(self):
         self._log.inf("Extracting names of objects containing classes from deployment ZIP")
-        class_objects = extract_class_objects(self._args.deploy_zip, self._args.source_dir)
+        class_objects = extract_class_objects(self._args.deploy_zip)
 
         self._log.inf("Checking which objects contain test classes")
         test_objects = extract_test_objects(class_objects, self._args.source_dir)
         nontest_objects = class_objects
-        class_objects = None
         for test_object in test_objects:
             nontest_objects.remove(test_object)
 
@@ -125,7 +124,7 @@ class DeployCommand(AbstractCommand):
             self._log.inf("  %s" % class_)
 
     def run(self):
-        ''' Gets called by Metamate '''
+        """ Gets called by Metamate """
         self._connect_to_salesforce()
 
         if self._args.test_level == 'RunSpecifiedTests':

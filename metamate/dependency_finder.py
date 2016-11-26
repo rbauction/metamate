@@ -1,11 +1,11 @@
-''' Test class dependency finder '''
+""" Test class dependency finder """
 import time
 
 from sfdclib import SfdcToolingApi
 
 
 def retrieve_apex_classes(tooling):
-    ''' Retrieves list of Apex classes '''
+    """ Retrieves list of Apex classes """
     res = tooling.anon_query("SELECT Id,Name FROM ApexClass")
     apex_classes = {}
     for apex_class in res['records']:
@@ -14,7 +14,7 @@ def retrieve_apex_classes(tooling):
 
 
 def create_metadata_container(tooling):
-    ''' (Re)creates metadata container '''
+    """ (Re)creates metadata container """
     container = {'Name': 'MetamateMetadataContainer'}
 
     res = tooling.anon_query(
@@ -33,7 +33,7 @@ def create_metadata_container(tooling):
 
 
 def find_test_class_dependencies(log, session, test_classes):
-    ''' Finds test class dependencies '''
+    """ Finds test class dependencies """
     tooling = SfdcToolingApi(session)
     log.inf("Retrieving list of Apex classes from Salesforce")
     apex_classes = retrieve_apex_classes(tooling)
@@ -69,8 +69,10 @@ def find_test_class_dependencies(log, session, test_classes):
         'MetadataContainerId': container['Id'],
         'IsCheckOnly': 'true'})
 
-    if res['success']:
-        req_id = res['id']
+    if not res['success']:
+        raise Exception("Tooling API call failed")
+
+    req_id = res['id']
     while True:
         res = tooling.anon_query(
             "SELECT State,ErrorMsg FROM ContainerAsyncRequest WHERE Id='%s'" % req_id)

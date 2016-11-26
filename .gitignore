@@ -95,3 +95,6 @@ sfdclib
 
 # Sublime Text
 *.sublime-*
+
+# Intellij IDEA
+.idea/
