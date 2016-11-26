@@ -50,7 +50,7 @@ class DeployCommand(AbstractCommand):
                    int(self._deployment_detail['failed_count']) < \
                    int(self._deployment_detail['total_count']):
                     progress = "(%s/%s) " % (
-                        self._deployment_detail['deployed_count'] + \
+                        self._deployment_detail['deployed_count'] +
                         self._deployment_detail['failed_count'],
                         self._deployment_detail['total_count']
                         )
@@ -73,8 +73,8 @@ class DeployCommand(AbstractCommand):
                 err['message'],
                 err['stack_trace']
                 ))
-        self._log.err("===== %s test(s) failed out of %s" % \
-            (len(self._unit_test_detail['errors']), self._unit_test_detail['total_count']))
+        self._log.err("===== %s test(s) failed out of %s" %
+                      (len(self._unit_test_detail['errors']), self._unit_test_detail['total_count']))
 
     def _log_deployment_errors(self):
         for err in self._deployment_detail['errors']:
@@ -84,8 +84,8 @@ class DeployCommand(AbstractCommand):
                 err['status'],
                 err['message']
                 ))
-        self._log.err("===== %s Component(s) failed out of %s" % \
-            (len(self._deployment_detail['errors']), self._deployment_detail['total_count']))
+        self._log.err("===== %s Component(s) failed out of %s" %
+                      (len(self._deployment_detail['errors']), self._deployment_detail['total_count']))
 
     def _connect_to_salesforce(self):
         sf_kwargs = self._compose_sf_connection_settings()
