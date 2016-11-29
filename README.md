@@ -31,8 +31,9 @@ Example
 Installation
 ---
 #### Linux, UNIX and Mac OS
-Install Python v3.4, install [sfdclib Python library] (https://github.com/rbauction/sfdclib) and clone this repository.
+Install Python v3.4, PyYAML package, install [sfdclib Python library] (https://github.com/rbauction/sfdclib) and clone this repository.
 ```sh
+pip install PyYAML
 pip install sfdclib
 git clone https://github.com/rbauction/metamate.git
 ```
@@ -74,5 +75,14 @@ metamate.exe deploy --sandbox --username sfdcadmin@mydomain.com.sandbox --passwo
 
 ##### Run unit tests contained in a deployment package (ZIP file) (Windows, Linux, UNIX and Mac OS)
 ```sh
+# Compile all test classes to resolve dependencies
 python metamate.py deploy --check-only --test-level RunSpecifiedTests --sandbox --username sfdcadmin@mydomain.com.sandbox --password Password --deploy-zip ../deploy.zip --source-dir ../src
+
+# Use local cache and compile only changed test classes (cache will be populated for each sandbox first time the tool is run)
+python metamate.py deploy --use-cache --check-only --test-level RunSpecifiedTests --sandbox --username sfdcadmin@mydomain.com.sandbox --password Password --deploy-zip ../deploy.zip --source-dir ../src
+```
+
+##### Clear local cache
+```sh
+python metamate.py clear-cache -o sandbox
 ```

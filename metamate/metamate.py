@@ -5,45 +5,61 @@ import argparse
 import sys
 
 from metamate.deploy import DeployCommand
+from metamate.metamatecache import MetamateCache
 from sfdclib import SfdcLogger
 
 
-def parse_command_line_args():
+def parse_command_line_args(argv):
     """ Parses command line arguments """
     # Declare command line arguments and switches
     parser = argparse.ArgumentParser(description='Manipulates Salesforce metadata')
-    parser.add_argument('command', type=str,
-                        help='command')
-    parser.add_argument('-u', '--username', type=str,
-                        help='Salesforce user name')
-    parser.add_argument('-p', '--password', type=str,
-                        help='password')
-    parser.add_argument('-t', '--token', type=str,
-                        help='security token')
-    parser.add_argument('-d', '--deploy-zip', type=str,
-                        help='path to deployment package')
-    parser.add_argument('-c', '--check-only', action='store_true',
-                        help='use this switch to validate deployment package')
-    parser.add_argument('-tl', '--test-level', type=str, default='NoTestRun',
-                        help='test level: NoTestRun, RunSpecifiedTests, RunLocalTests')
-    parser.add_argument('-s', '--source-dir', type=str,
-                        help='path to directory containing metadata')
-    parser.add_argument('--sandbox', dest='sandbox', action='store_true',
-                        help='use this switch when working with sandbox')
-    parser.add_argument('-v', '--version', type=str,
-                        help='API version (i.e. 32.0, 33.0, etc)')
-    return parser.parse_args()
+    subparsers = parser.add_subparsers(title='commands', help='commands', dest='command')
+    subparsers.required = True
+
+    clear_cache_parser = subparsers.add_parser('clear-cache', help='Clear local cache')
+    clear_cache_parser.set_defaults(which='clear-cache')
+    clear_cache_parser.add_argument('-o', '--org-name', type=str, required=True,
+                                    help='Salesforce org name')
+
+    deploy_parser = subparsers.add_parser('deploy', help='Deploy deployment package')
+    deploy_parser.set_defaults(which='deploy')
+    deploy_parser.add_argument('--sandbox', dest='sandbox', action='store_true',
+                               help='use this switch when working with sandbox')
+    deploy_parser.add_argument('-u', '--username', type=str, required=True,
+                               help='Salesforce user name')
+    deploy_parser.add_argument('-p', '--password', type=str, required=True,
+                               help='password')
+    deploy_parser.add_argument('-t', '--token', type=str,
+                               help='security token')
+    deploy_parser.add_argument('-d', '--deploy-zip', type=str, required=True,
+                               help='path to deployment package')
+    deploy_parser.add_argument('-s', '--source-dir', type=str, required=True,
+                               help='path to directory containing metadata')
+    deploy_parser.add_argument('-c', '--check-only', action='store_true',
+                               help='use this switch to validate deployment package')
+    deploy_parser.add_argument('-uc', '--use-cache', action='store_true',
+                               help='use local cache to store symbol tables')
+    deploy_parser.add_argument('-tl', '--test-level', type=str, default='NoTestRun',
+                               help='test level: NoTestRun, RunSpecifiedTests, RunLocalTests')
+    deploy_parser.add_argument('-v', '--version', type=str,
+                               help='API version (i.e. 32.0, 33.0, etc)')
+
+    return parser.parse_args(argv)
 
 
-def main():
+def main(argv):
     """ Main function """
-    args = parse_command_line_args()
+    args = parse_command_line_args(argv)
     log = SfdcLogger()
 
     # Execute method corresponding to the command specified
     if args.command.lower() == 'deploy':
         cmd = DeployCommand(args, log)
         ret = cmd.run()
+    elif args.command.lower() == 'clear-cache':
+        cache = MetamateCache(args.org_name)
+        cache.clear()
+        ret = True
     else:
         log.err("Unknown command [%s]" % args.command)
         sys.exit(1)

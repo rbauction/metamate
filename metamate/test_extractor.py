@@ -18,12 +18,12 @@ def grep_file(filename, reg_obj):
 
 def extract_package_xml(zipfile):
     with ZipFile(zipfile) as zf:
-        with zf.open('package.xml') as pxml:
-            return ET.fromstring(pxml.read().decode("utf-8"))
+        with zf.open('package.xml') as package_xml:
+            return ET.fromstring(package_xml.read().decode("utf-8"))
 
 
 def extract_members(root, object_type):
-    items = []
+    items = list()
     for node in root.findall("mt:types/[mt:name='%s']" % object_type, XML_NAMESPACES):
         for member in node.findall("mt:members", XML_NAMESPACES):
             items.append(member.text)
@@ -36,7 +36,7 @@ def extract_class_objects(zipfile):
 
 
 def extract_test_objects(classes, source_dir):
-    objects = []
+    objects = list()
     reg_obj = re.compile(r'@isTest', re.UNICODE)
     for c in classes:
         file_path = path.join(source_dir, "classes", "%s.cls" % c)
@@ -49,7 +49,7 @@ def extract_test_objects(classes, source_dir):
 
 
 def find_test_objects(source_dir):
-    objects = []
+    objects = list()
     reg_obj_test = re.compile(r'@isTest', re.UNICODE)
     reg_obj_active = re.compile(r'Active', re.UNICODE)
     classes_path = path.join(source_dir, "classes")
@@ -64,7 +64,7 @@ def find_test_objects(source_dir):
 
 
 def extract_class_names(objects, source_dir):
-    class_names = []
+    class_names = list()
     reg_obj = re.compile(r'(private|public)\s+.*class\s+([a-zA-Z0-9_]+)\s*', re.UNICODE)
     for obj in objects:
         filename = path.join(source_dir, "classes", "%s.cls" % obj)

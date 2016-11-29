@@ -2,6 +2,7 @@
 import time
 from metamate.abstract_command import AbstractCommand
 from metamate.dependency_finder import find_test_class_dependencies
+from metamate.metamatecache import MetamateCache
 from metamate.test_extractor import \
     extract_class_objects, \
     extract_test_objects, \
@@ -16,6 +17,8 @@ class DeployCommand(AbstractCommand):
     """ Deploy command """
     def __init__(self, args, log):
         super().__init__(args, log)
+        self._org_name = self._args.username.rsplit('.', 1)[1]
+        self._cache = None
         self._session = None
         self._mapi = None
         self._deployment_id = None
@@ -102,29 +105,41 @@ class DeployCommand(AbstractCommand):
         nontest_objects = class_objects
         for test_object in test_objects:
             nontest_objects.remove(test_object)
+            if self._args.use_cache:
+                self._cache.delete_class_data(test_object)
 
         self._log.inf("Extracting names of test classes")
         self._unit_tests_to_run = extract_class_names(test_objects, self._args.source_dir)
 
-        self._log.inf("Extracting names of nontest classes")
+        self._log.inf("Extracting names of non-test classes")
         changed_nontest_classes = extract_class_names(nontest_objects, self._args.source_dir)
 
         self._log.inf("Searching for all objects containing Apex classes")
         all_test_objects = find_test_objects(self._args.source_dir)
 
-        class_dependencies = find_test_class_dependencies(
-            self._log, self._session, all_test_objects)
-        for class_ in changed_nontest_classes:
-            if class_ in class_dependencies:
-                for dependant in class_dependencies[class_]:
+        test_class_dependencies, class_dependencies = find_test_class_dependencies(
+            self._log, self._session, all_test_objects, self._args.source_dir, self._args.use_cache, self._cache.data)
+
+        # Save class_dependencies to cache
+        for class_name, data in test_class_dependencies.items():
+            self._cache.add_class_data(class_name, data)
+
+        # Find test classes that need to be executed based on non-test classes dependencies
+        for class_name in changed_nontest_classes:
+            if class_name in class_dependencies:
+                for dependant in class_dependencies[class_name]:
                     self._unit_tests_to_run.append(dependant)
 
         self._log.inf("Unit tests to be executed")
-        for class_ in self._unit_tests_to_run:
-            self._log.inf("  %s" % class_)
+        for class_name in self._unit_tests_to_run:
+            self._log.inf("  %s" % class_name)
 
     def run(self):
         """ Gets called by Metamate """
+        self._cache = MetamateCache(self._org_name)
+        if self._args.use_cache:
+            self._cache.load()
+
         self._connect_to_salesforce()
 
         if self._args.test_level == 'RunSpecifiedTests':
@@ -153,6 +168,12 @@ class DeployCommand(AbstractCommand):
             self._log_deployment_errors()
             self._log.err('Deployment failed')
             return False
-
-        self._log.inf('Deployment succeeded')
-        return True
+        elif self._deployment_state == 'Canceled' or self._deployment_state == 'Canceling':
+            self._log.err('Deployment was canceled')
+            return False
+        elif self._deployment_state == 'Succeeded':
+            self._log.inf('Deployment succeeded')
+            return True
+        else:
+            self._log.err('Unknown deployment state: {0}'.format(self._deployment_state))
+            return False
