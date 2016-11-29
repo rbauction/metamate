@@ -52,10 +52,11 @@ Resulting exe file can be found in dist directory.
 Usage
 ---
 ```sh
-usage: metamate.py [-h] [--username USERNAME] [--password PASSWORD]
-                   [--token TOKEN] [--deploy-zip DEPLOY_ZIP]
-                   [--source-dir SOURCE_DIR] [--sandbox] [--version VERSION]
-                   command
+metamate.py deploy [-h] --username USERNAME --password PASSWORD [--token TOKEN]
+            --deploy-zip DEPLOY_ZIP --source-dir SOURCE_DIR
+            [--sandbox] [--check-only] [--use-cache] [--version VERSION]
+or
+metamate.py clear-cache --org-name ORG_NAME
 ```
 
 ##### Deploy a deployment package (ZIP file) (Windows, Linux, UNIX and Mac OS)
