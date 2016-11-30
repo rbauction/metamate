@@ -1,5 +1,5 @@
 import unittest
-from metamate import dependency_finder
+from metamatelib import dependency_finder
 
 
 class DependencyFinderTest(unittest.TestCase):

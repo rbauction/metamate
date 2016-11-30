@@ -1,9 +1,9 @@
 """ Deploy command """
 import time
-from metamate.abstract_command import AbstractCommand
-from metamate.dependency_finder import find_test_class_dependencies
-from metamate.metamatecache import MetamateCache
-from metamate.test_extractor import \
+from metamatelib.abstract_command import AbstractCommand
+from metamatelib.dependency_finder import find_test_class_dependencies
+from metamatelib.metamatecache import MetamateCache
+from metamatelib.test_extractor import \
     extract_class_objects, \
     extract_test_objects, \
     extract_class_names, \

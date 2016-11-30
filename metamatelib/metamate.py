@@ -4,8 +4,8 @@
 import argparse
 import sys
 
-from metamate.deploy import DeployCommand
-from metamate.metamatecache import MetamateCache
+from metamatelib.deploy import DeployCommand
+from metamatelib.metamatecache import MetamateCache
 from sfdclib import SfdcLogger
 
 
