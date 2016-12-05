@@ -21,6 +21,8 @@ class DeployCommand(AbstractCommand):
             self._org_name = self._args.org_name
         else:
             self._org_name = None
+        self._check_only = self._args.check_only
+        self._test_level = self._args.test_level
         self._cache = None
         self._session = None
         self._mapi = None
@@ -147,20 +149,23 @@ class DeployCommand(AbstractCommand):
 
         self._connect_to_salesforce()
 
-        if self._args.test_level == 'RunSpecifiedTests':
+        if self._test_level == 'RunSpecifiedTests':
             self._find_unit_tests_to_run()
+            if len(self._unit_tests_to_run) == 0:
+                self._log.inf("Could not find any tests to run, downgrading test level to NoTestRun")
+                self._test_level = 'NoTestRun'
 
         self._mapi = SfdcMetadataApi(self._session)
 
-        self._log.inf("Deploying ZIP file. Test level: %s" % self._args.test_level)
+        self._log.inf("Deploying ZIP file. Test level: %s" % self._test_level)
         deploy_kwargs = {
             'zipfile': self._args.deploy_zip,
             'options': {
-                'checkonly': self._args.check_only,
-                'testlevel': self._args.test_level,
+                'checkonly': self._check_only,
+                'testlevel': self._test_level,
             }
         }
-        if self._args.test_level == 'RunSpecifiedTests':
+        if self._test_level == 'RunSpecifiedTests':
             deploy_kwargs['options']['tests'] = self._unit_tests_to_run
 
         self._deployment_id, self._deployment_state = self._mapi.deploy(**deploy_kwargs)
