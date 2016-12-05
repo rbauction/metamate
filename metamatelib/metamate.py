@@ -23,8 +23,8 @@ def parse_command_line_args(argv):
 
     deploy_parser = subparsers.add_parser('deploy', help='Deploy deployment package')
     deploy_parser.set_defaults(which='deploy')
-    deploy_parser.add_argument('--sandbox', dest='sandbox', action='store_true',
-                               help='use this switch when working with sandbox')
+    deploy_parser.add_argument('-o', '--org-name', type=str, required=True,
+                               help='Salesforce org name (omit this argument when working with production)')
     deploy_parser.add_argument('-u', '--username', type=str, required=True,
                                help='Salesforce user name')
     deploy_parser.add_argument('-p', '--password', type=str, required=True,
@@ -40,6 +40,7 @@ def parse_command_line_args(argv):
     deploy_parser.add_argument('-uc', '--use-cache', action='store_true',
                                help='use local cache to store symbol tables')
     deploy_parser.add_argument('-tl', '--test-level', type=str, default='NoTestRun',
+                               choices=['NoTestRun', 'RunSpecifiedTests', 'RunLocalTests'],
                                help='test level: NoTestRun, RunSpecifiedTests, RunLocalTests')
     deploy_parser.add_argument('-v', '--version', type=str,
                                help='API version (i.e. 32.0, 33.0, etc)')

@@ -17,7 +17,10 @@ class DeployCommand(AbstractCommand):
     """ Deploy command """
     def __init__(self, args, log):
         super().__init__(args, log)
-        self._org_name = self._args.username.rsplit('.', 1)[1]
+        if self._args.org_name:
+            self._org_name = self._args.org_name
+        else:
+            self._org_name = None
         self._cache = None
         self._session = None
         self._mapi = None
@@ -32,9 +35,11 @@ class DeployCommand(AbstractCommand):
         sf_kwargs = {
             'username': self._args.username,
             'password': self._args.password,
-            'token': self._args.token,
-            'is_sandbox': self._args.sandbox
+            'token': self._args.token
         }
+
+        if self._org_name:
+            sf_kwargs['is_sandbox'] = True
 
         if self._args.version:
             sf_kwargs['api_version'] = self._args.version
