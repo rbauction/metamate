@@ -18,13 +18,13 @@ def parse_command_line_args(argv):
 
     clear_cache_parser = subparsers.add_parser('clear-cache', help='Clear local cache')
     clear_cache_parser.set_defaults(which='clear-cache')
-    clear_cache_parser.add_argument('-o', '--org-name', type=str, required=True,
-                                    help='Salesforce org name')
+    clear_cache_parser.add_argument('-u', '--username', type=str, required=True,
+                                    help='Salesforce user name')
 
     deploy_parser = subparsers.add_parser('deploy', help='Deploy deployment package')
     deploy_parser.set_defaults(which='deploy')
-    deploy_parser.add_argument('-o', '--org-name', type=str, required=True,
-                               help='Salesforce org name (omit this argument when working with production)')
+    deploy_parser.add_argument('--sandbox', action='store_true',
+                               help='use this switch when connecting deploying to a sandbox')
     deploy_parser.add_argument('-u', '--username', type=str, required=True,
                                help='Salesforce user name')
     deploy_parser.add_argument('-p', '--password', type=str, required=True,
@@ -58,7 +58,7 @@ def main(argv):
         cmd = DeployCommand(args, log)
         ret = cmd.run()
     elif args.command.lower() == 'clear-cache':
-        cache = MetamateCache(args.org_name)
+        cache = MetamateCache(args.username)
         cache.clear()
         ret = True
     else:

@@ -17,10 +17,6 @@ class DeployCommand(AbstractCommand):
     """ Deploy command """
     def __init__(self, args, log):
         super().__init__(args, log)
-        if self._args.org_name:
-            self._org_name = self._args.org_name
-        else:
-            self._org_name = None
         self._check_only = self._args.check_only
         self._test_level = self._args.test_level
         self._cache = None
@@ -37,11 +33,9 @@ class DeployCommand(AbstractCommand):
         sf_kwargs = {
             'username': self._args.username,
             'password': self._args.password,
-            'token': self._args.token
+            'token': self._args.token,
+            'is_sandbox': self._args.sandbox
         }
-
-        if self._org_name:
-            sf_kwargs['is_sandbox'] = True
 
         if self._args.version:
             sf_kwargs['api_version'] = self._args.version
@@ -143,7 +137,7 @@ class DeployCommand(AbstractCommand):
 
     def run(self):
         """ Gets called by Metamate """
-        self._cache = MetamateCache(self._org_name)
+        self._cache = MetamateCache(self._args.username)
         if self._args.use_cache:
             self._cache.load()
 

@@ -56,7 +56,7 @@ metamate.py deploy [-h] --username USERNAME --password PASSWORD [--token TOKEN]
             --deploy-zip DEPLOY_ZIP --source-dir SOURCE_DIR
             [--sandbox] [--check-only] [--use-cache] [--version VERSION]
 or
-metamate.py clear-cache --org-name ORG_NAME
+metamate.py clear-cache --username USERNAME
 ```
 
 ##### Deploy a deployment package (ZIP file) (Windows, Linux, UNIX and Mac OS)
@@ -85,5 +85,5 @@ python metamate.py deploy --use-cache --check-only --test-level RunSpecifiedTest
 
 ##### Clear local cache
 ```sh
-python metamate.py clear-cache -o sandbox
+python metamate.py clear-cache --username sfdcadmin@mydomain.com.sandbox
 ```

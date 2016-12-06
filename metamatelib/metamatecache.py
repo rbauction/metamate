@@ -7,10 +7,10 @@ class MetamateCache:
     """ Class to manage local cache """
     ROOT_DIR_NAME = ".metamate"
 
-    def __init__(self, org_name):
-        self._org_name = org_name
+    def __init__(self, username):
+        self._username = username
         self._root_dir = os.path.join(os.path.expanduser("~"), self.ROOT_DIR_NAME)
-        self._org_root_dir = os.path.join(self._root_dir, self._org_name)
+        self._org_root_dir = os.path.join(self._root_dir, self._username)
         self._data = dict()
 
     @property
@@ -19,6 +19,13 @@ class MetamateCache:
 
     def load(self):
         """ Loads data for all classes stored in local cache """
+        # Check whether org directory exists in the local cache
+        if os.path.exists(self._org_root_dir):
+            if not os.path.isdir(self._org_root_dir):
+                raise Exception("Please delete {0} file, Metamate needs to create a directory with this name")
+        else:
+            os.makedirs(self._org_root_dir)
+        # Find existing files
         for path in glob.glob('{0}/*.yaml'.format(self._org_root_dir)):
             file_name = os.path.split(path)[1]
             class_name = file_name[:-5]
@@ -34,12 +41,6 @@ class MetamateCache:
 
     def add_class_data(self, class_name, data):
         """ Stores data for a class in the local cache """
-        # Check whether org directory exists in the local cache
-        if os.path.exists(self._org_root_dir):
-            if not os.path.isdir(self._org_root_dir):
-                raise Exception("Please delete {0} file, Metamate needs to create a directory with this name")
-        else:
-            os.makedirs(self._org_root_dir)
         # Save as YAML into local cache
         with open(self._class_data_file_name(class_name), 'w+') as file:
             file.write(yaml.dump(data, default_flow_style=False))
