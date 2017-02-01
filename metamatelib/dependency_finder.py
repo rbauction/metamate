@@ -133,7 +133,7 @@ def retrieve_class_dependencies(log, session, classes, source_dir):
 
 def read_class_body(source_dir, class_name):
     with open(os.path.join(source_dir, *["classes", "{0}.cls".format(class_name)]), 'r') as file:
-        return file.read(sys.maxsize)
+        return file.read(-1)
 
 
 def reverse_class_dependencies(dependencies):
