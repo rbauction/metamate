@@ -45,7 +45,7 @@ How to create Windows executable
 ---
 Install PyInstaller and then run the following command:
 ```sh
-pyinstaller --onefile metamate.py
+pyinstaller metamate.spec
 ```
 Resulting exe file can be found in dist directory.
 
