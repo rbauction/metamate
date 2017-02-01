@@ -1,6 +1,5 @@
 """ Test class dependency finder """
 import os
-import sys
 import time
 
 from sfdclib import SfdcToolingApi
